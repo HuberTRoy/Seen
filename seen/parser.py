@@ -4,12 +4,17 @@ from html import unescape
 
 
 from .logger import logger
+from .item import BinItem
 
 
 class BaseParser(object):
     """
     :param rules: list[function(response)]/tuple(function(response)).
     :param item: Item. 
+    :param url_rule: str or function.
+                    if it is a str will use re.findall(url_rule, response.text)
+                    if it is a function will use url_rule(response.text), the function expects returning an iterable object that contains URL.
+                    By default it is r'''(?i)href=["']([^\s"'<>]+)'''.
     """
     def __init__(self, rules=None, item=None, url_rule=None):
 
@@ -23,24 +28,26 @@ class BaseParser(object):
     def __call__(self, response):
         return self.analyze_response(response)
 
-    def parse_item(self, html):
-        item = self.item(html)
+    def parse_item(self, response):
+        item = self.item(response)
         return item
 
     def get_urls(self, html):
-        urls = set(re.findall(self.url_rule, html))
+        if isinstance(self.url_rule, str):
+            urls = set(re.findall(self.url_rule, html))
+        else:
+            urls = set(self.url_rule(html))
         return urls
 
     async def analyze_response(self, response):
-        text = response.text
-        if any([i(text) for i in self.rules]):
+        if any([i(response) for i in self.rules]) or not self.rules:
             if self.item is not None: 
-                item = self.parse_item(text)
+                item = self.parse_item(response)
 
                 # TODO: if async or not.
                 await item.save()
 
-        return self.get_urls(text)
+        return self.get_urls(response.text)
 
 
 class Parser(BaseParser):
@@ -49,11 +56,11 @@ class Parser(BaseParser):
 
         base judge:
 
-        if 'x' in response:
+        if rule in response.text:
 
     """
     def __init__(self, rule=None, item=None, url_rule=None):
-        super().__init__(rule and [lambda x: True if rule in x else False],
+        super().__init__(rule and [lambda response: True if rule in response.text else False],
             item,
             url_rule)
 
@@ -64,10 +71,34 @@ class ReParser(BaseParser):
 
         re judge:
 
-        if re.match(rule, x) is not None:
+        if re.search(rule, response.text) is not None:
             True
     """
     def __init__(self, rule=None, item=None, url_rule=None):
-        super().__init__(rule and [lambda x: True if re.match(rule, x) else False],
+        super().__init__(rule and [lambda response: True if re.search(rule, response.text) else False],
             item,
             url_rule)
+
+
+class FuncParser(BaseParser):
+    """
+        function parser.
+        use function judge:
+        def function(response):
+            if response.url == 'https://github.com':
+                return True
+            return False
+        
+        def function2(response):
+            if 'google' in response.url:
+                return True
+            return False
+
+        FuncParser([function, function2])
+                
+    """
+    def __init__(self, rule:iter, item=None, url_rule=None):
+        super().__init__(rule, 
+            item,
+            url_rule)
+

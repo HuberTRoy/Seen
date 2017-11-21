@@ -35,19 +35,22 @@ class Spider:
 
         self.session = asrequests
         if isinstance(self.roots, str):
-            logger.info('root url: {}'.format(self.roots))
+            logger.info('get root url: {}'.format(self.roots))
             self.work_queue.put_nowait(self.roots)
         else:
             for root in self.roots:
-                logger.info('root url: {}'.format(root))
+                logger.info('get root url: {}'.format(root))
                 self.work_queue.put_nowait(root)
 
     def get_host(self, url):
-        host = re.search(r'://(.*?)/', url).group(1)
+        host = re.search(r'://(.*?)/', url)
         if not host:
-            return re.search(r'://(.*)', url).group(1)
+            host = re.search(r'://(.*)', url)
 
-        return host
+        if not host:
+            return ''
+
+        return host.group(1)
 
     async def work(self):
         try:
@@ -69,6 +72,11 @@ class Spider:
                 host = self.get_host(url)
 
                 if self.url_limit:
+                    if not host:
+                        logger.info('This url({}) cannot get host, please check again'.format(url))
+                        self.work_queue.task_done()
+                        continue
+
                     if host not in self.url_limit:
                         logger.info('This url({}) out of the url_limit'.format(url))
                         self.work_queue.task_done()
@@ -76,7 +84,6 @@ class Spider:
 
                 for i in range(self.max_tries):
                     response = await fetch_content(url, self.session, headers=self.headers, timeout=self.timeout)
-
                     if response is None:
                         logger.info('This url({}) get some error, retring...'.format(url))
                         continue
@@ -105,11 +112,13 @@ class Spider:
             pass
 
     async def crawl(self):
-        workder = [asyncio.Task(self.work()) for _ in range(self.concurrency)]
+        logger.info('Spider start.')
+        workers = [asyncio.Task(self.work()) for _ in range(self.concurrency)]
+        asyncio.gather(*workers)
 
         await self.work_queue.join()
 
-        for i in workder:
+        for i in workers:
             i.cancel()
         
         logger.info("Error urls: {}".format(len(self.error_urls)))
