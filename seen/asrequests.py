@@ -50,8 +50,8 @@ ErrorRequest = namedtuple('ErrorRequest',
 
 class AioResult(object):
     
-    def __init__(self, content, headers, cookies, code, encoding=None):
-
+    def __init__(self, url, content, headers, cookies, code, encoding=None):
+        self.url = url
         self.content = content
         self.header = headers
         self.cookies = cookies
@@ -67,6 +67,8 @@ class AioResult(object):
         if not self.encoding:
             encoding = chardet.detect(self.content)['encoding']
             self.encoding = encoding
+        else:
+            encoding = self.encoding
             
         try:
             return str(self.content, encoding, errors='replace')
@@ -105,7 +107,7 @@ if not noAiohttp:
             self.session.close()
 
         async def request(self, method, url, **kwargs):
-            content = ''
+            content = b''
             method = method.upper()
             if method == 'GET':
                 request = self.session.get
@@ -113,7 +115,6 @@ if not noAiohttp:
                 request = self.session.post
             else:
                 raise(TypeError('Unknow method.'))
-
 
             if kwargs.get('timeout'):
                 timeout = kwargs.pop('timeout')
@@ -124,14 +125,15 @@ if not noAiohttp:
                 response = await request(url, **kwargs)    
                 content = await response.read()
 
-
             if not content:
-                return AioResult(content,
+                return AioResult(url,
+                    content,
                     '',
                     '',
                     0)
 
-            return AioResult(content, 
+            return AioResult(url,
+                content, 
                 response.headers, 
                 response.cookies,
                 response.status,
