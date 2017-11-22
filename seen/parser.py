@@ -43,9 +43,14 @@ class BaseParser(object):
         if any([i(response) for i in self.rules]) or not self.rules:
             if self.item is not None: 
                 item = self.parse_item(response)
+                try:
+                    # TODO: if async or not.
+                    await item.save()
+                except:
+                    logger.error("Get some error when tried to save data, please check again, there is the error information:", exc_info=True)
 
-                # TODO: if async or not.
-                await item.save()
+        if issubclass(self.item, BinItem):
+            return set()
 
         return self.get_urls(response.text)
 

@@ -25,6 +25,7 @@ class Spider:
         'Pragma': 'no-cache',
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36'
     }
+    cookies = {}
     concurrency = 3
     max_tries = 4
     timeout = 3.05
@@ -83,7 +84,7 @@ class Spider:
                         continue
 
                 for i in range(self.max_tries):
-                    response = await fetch_content(url, self.session, headers=self.headers, timeout=self.timeout)
+                    response = await fetch_content(url, self.session, headers=self.headers, timeout=self.timeout, cookies=self.cookies)
                     if response is None:
                         logger.info('This url({}) get some error, retring...'.format(url))
                         continue
@@ -91,7 +92,6 @@ class Spider:
                     new_urls = []
                     for parser in self.parsers:
                         urls = await parser(response)
-
                         new_urls.extend(urls)
 
                     logger.info('url {} has finished.'.format(url))
