@@ -107,6 +107,11 @@ if not noAiohttp:
             self.session.close()
 
         async def request(self, method, url, **kwargs):
+            cookies = kwargs.get('cookies')
+            if cookies is not None:
+                self.session._cookie_jar.update_cookies(cookies)
+                kwargs.pop('cookies')
+
             content = b''
             method = method.upper()
             if method == 'GET':
@@ -135,7 +140,7 @@ if not noAiohttp:
             return AioResult(url,
                 content, 
                 response.headers, 
-                response.cookies,
+                self.session.cookie_jar,
                 response.status,
                 encoding=kwargs.get('encoding'))
 
@@ -397,5 +402,4 @@ asrequests = AsRequests()
 
 
 if __name__ == '__main__':
-
-    pass
+    help(asrequests)
