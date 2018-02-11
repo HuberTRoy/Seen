@@ -35,7 +35,6 @@ class Css(Selector):
         return [i.attr(self.attr) for i in html(self.rule).items()]
 
 
-
 class Regex(Selector):
 
     def get_select(self, html):

@@ -1,3 +1,5 @@
+import json
+
 from html import unescape
 
 from .logger import logger
@@ -21,18 +23,23 @@ class BaseItem(type):
 # https://stackoverflow.com/questions/100003/what-is-a-metaclass-in-python
 class Item(metaclass=BaseItem):
 
-    def __init__(self, response):
+    def __init__(self, spider, response, isJson=False):
         html = response.text
         self.result = {}
+        self.spider = spider
         self.response = response
-        html = unescape(html)
-        for name, selector in self.selector.items():
-            contents = selector.get_select(html)
-            if contents is None:
-                logger.error('selector "{}:{}" was error, please check again.'.format(name, selector))
-                continue
-            
-            self.result[name] = contents
+        if isJson:
+            self.result['json'] = json.loads(html)
+        else:
+            html = unescape(html)
+
+            for name, selector in self.selector.items():
+                contents = selector.get_select(html)
+                if contents is None:
+                    logger.error('selector "{}:{}" was error, please check again.'.format(name, selector))
+                    continue
+                
+                self.result[name] = contents
 
     def save(self):
 
@@ -42,8 +49,9 @@ class Item(metaclass=BaseItem):
 # save binary data.
 class BinItem(object):
 
-    def __init__(self, response):
+    def __init__(self, spider,  response):
         self.response = response
+        self.spider = spider
         self.content = response.content
 
     def save(self):

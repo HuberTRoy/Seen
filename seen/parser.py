@@ -16,23 +16,30 @@ class BaseParser(object):
                     if it is a function will use url_rule(response.text), the function expects returning an iterable object that contains URL.
                     By default it is r'''(?i)href=["']([^\s"'<>]+)'''.
     """
-    def __init__(self, rules=None, item=None, url_rule=None):
+    def __init__(self, url_rule=None, item=None, rules=None, isJson=False):
+        # which spider own it.
+        self.spider = None
 
         self.rules = rules or []
         self.item = item
+        self.isJson = isJson
 
         if url_rule is None:
             url_rule = r'''(?i)href=["']([^\s"'<>]+)'''
+
         self.url_rule = url_rule
 
     def __call__(self, response):
         return self.analyze_response(response)
 
     def parse_item(self, response):
-        item = self.item(response)
+        item = self.item(self.spider, response, self.isJson)
         return item
 
     def get_urls(self, html):
+        if self.isJson:
+            return {}
+
         if isinstance(self.url_rule, str):
             urls = set(re.findall(self.url_rule, html))
         else:
@@ -44,10 +51,19 @@ class BaseParser(object):
             if self.item is not None: 
                 item = self.parse_item(response)
                 try:
-                    # TODO: if async or not.
+                    # whether it is async function or not, it will be run
+                    # the difference between them is normal function will raise a TypeError.
+                    # For example:
+                    # def save():
+                    #      print('save me!')
+                    # will raise `TypeError: object NoneType can't be used in 'await' expression` but will also output "save me".
+                    # 
                     await item.save()
-                except:
-                    logger.error("Get some error when tried to save data, please check again, there is the error information:", exc_info=True)
+                except Exception as e:
+                    if 'await' in str(e):
+                        logger.error("Get some error when tried to save data, it seems because `item.save()` is not an async function.")
+                    else:
+                        logger.error("Get some error when tried to save data, please check again, this is the error information:", exc_info=True)
 
         if issubclass(self.item, BinItem):
             return set()
@@ -64,10 +80,12 @@ class Parser(BaseParser):
         if rule in response.text:
 
     """
-    def __init__(self, rule=None, item=None, url_rule=None):
-        super().__init__(rule and [lambda response: True if rule in response.text else False],
+    def __init__(self, item=None, url_rule=None, rule=None, isJson=False):
+        super().__init__(
+            url_rule,
             item,
-            url_rule)
+            rule and [lambda response: True if rule in response.text else False],
+            isJson)
 
 
 class ReParser(BaseParser):
@@ -79,10 +97,12 @@ class ReParser(BaseParser):
         if re.search(rule, response.text) is not None:
             True
     """
-    def __init__(self, rule=None, item=None, url_rule=None):
-        super().__init__(rule and [lambda response: True if re.search(rule, response.text) else False],
+    def __init__(self, url_rule=None, item=None, rule=None, isJson=False):
+        super().__init__(
+            url_rule,
             item,
-            url_rule)
+            rule and [lambda response: True if re.search(rule, response.text) else False],
+            isJson)
 
 
 class FuncParser(BaseParser):
@@ -102,8 +122,10 @@ class FuncParser(BaseParser):
         FuncParser([function, function2])
                 
     """
-    def __init__(self, rule:iter, item=None, url_rule=None):
-        super().__init__(rule, 
+    def __init__(self, url_rule=None, item=None,  rule:iter=None, isJson=None):
+        super().__init__(
+            url_rule, 
             item,
-            url_rule)
+            rule,
+            isJson)
 
