@@ -104,7 +104,10 @@ if not noAiohttp:
         session = aiohttp.ClientSession()
 
         def __del__(self):
-            self.session.close()
+            if not self.session.closed:
+                if self.session._connector_owner:
+                    self.session._connector.close()
+                self.session._connector = None
 
         async def request(self, method, url, **kwargs):
             cookies = kwargs.get('cookies')
@@ -124,18 +127,18 @@ if not noAiohttp:
             if kwargs.get('timeout'):
                 timeout = kwargs.pop('timeout')
                 async with async_timeout.timeout(timeout):
-                    response = await request(url, **kwargs)
-                    content = await response.read()
+                    async with request(url, **kwargs) as response:
+                        content = await response.read()
             else:
-                response = await request(url, **kwargs)    
-                content = await response.read()
+                async with request(url, **kwargs) as response:
+                    content = await response.read()
 
             if not content:
-                return AioResult(url,
-                    content,
-                    '',
-                    '',
-                    0)
+                return ErrorRequest(url=url,
+                                                    text='',
+                                                    content=content,
+                                                    code='900',
+                                                    error_info=str(response))
 
             return AioResult(url,
                 content, 
@@ -334,7 +337,7 @@ class AsRequests(BaseHttp):
             data = ErrorRequest(url=url,
                                 text='',
                                 content=b'',
-                                code='404',
+                                code='900',
                                 error_info=e)
             self.exceptionHandler(e)
         finally:
