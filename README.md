@@ -22,7 +22,7 @@ pip install seen
 ## Usage:
 
 1. Write spider.py
-```
+```python
 from seen import Spider, Parser, Item, Css
 
 
