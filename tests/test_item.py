@@ -52,7 +52,6 @@ def test_item_parser():
 
     # test result
     assert result['title'] == 'Test'
-    assert result['div_text'] == 'A TEXT P TEXT'
     assert result['a_text'] == 'A TEXT'
     assert type(result['a_href']) == list
     assert 'http://test.com' in result['a_href'] and isinstance(
