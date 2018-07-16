@@ -17,13 +17,13 @@ class Spider(MutableMapping):
     roots = ''
     # url_limit:
     # if url in url_limit:
-    #      continue 
+    #      continue
     # else:
     #      pass this url.
     url_limit = set()
     parsers = []
     error_urls = set()
-    
+
     headers = {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Encoding': 'gzip, deflate, sdch',
@@ -53,7 +53,7 @@ class Spider(MutableMapping):
                 logger.info('get root url: {}'.format(root))
                 self.work_queue.put_nowait(root)
 
-        # given .spider attribute for parser. 
+        # given .spider attribute for parser.
         for parser in self.parsers:
             parser.spider = self
 
@@ -72,16 +72,15 @@ class Spider(MutableMapping):
     def __len__(self):
         return len(self.state)
 
-    def add_roots(self, roots:iter):
+    def add_roots(self, roots: iter):
         for root in roots:
             logger.info('Got root URL: {}'.format(root))
             self.work_queue.put_nowait(root)
 
-    def add_parsers(self, parsers:iter):
+    def add_parsers(self, parsers: iter):
         for parser in parsers:
             logger.info('Got root URL: {}'.format(root))
             self.work_queue.put_nowait(root)
-
 
     def get_host(self, url):
         host = re.search(r'://(.*?)/', url)
@@ -93,7 +92,7 @@ class Spider(MutableMapping):
 
         return host.group(1)
 
-    def _add_url_to_workqueue(self, urls:iter):
+    def _add_url_to_workqueue(self, urls: iter):
         for i in urls:
             self.work_queue.put_nowait(i)
 
@@ -103,12 +102,13 @@ class Spider(MutableMapping):
 
         if 'http' not in url:
             logger.info('This is an invalid URL: {}'.format(url))
-            return False            
+            return False
 
         if self.url_limit:
             host = self.get_host(url)
             if not host:
-                logger.info('This URL ({}) cannot get its host, please check again'.format(url))
+                logger.info(
+                    'This URL ({}) cannot get its host, please check again'.format(url))
                 return False
 
             if host not in self.url_limit:
@@ -122,6 +122,7 @@ class Spider(MutableMapping):
             Do something with the URL that connected failure.
             Should be override.
         """
+        await asyncio.sleep(0)
 
     async def init_spider(self):
         """
@@ -138,18 +139,19 @@ class Spider(MutableMapping):
 
         return new_urls
 
-    async def  _fetch_url(self, url, **kwargs):
-            for i in range(self.max_tries):
-                response = await fetch_content(url, self.session, headers=self.headers, timeout=self.timeout, cookies=self.cookies)       
-                # return None if failed.
-                if response is None:
-                    logger.info('Got None when requested this URL ({}), retring...'.format(url))
-                    continue
+    async def _fetch_url(self, url, **kwargs):
+        for i in range(self.max_tries):
+            response = await fetch_content(url, self.session, headers=self.headers, timeout=self.timeout, cookies=self.cookies)
+            # return None if failed.
+            if response is None:
+                logger.info(
+                    'Got None when requested this URL ({}), retring...'.format(url))
+                continue
 
-                return response
-            else:
-                await self.url_failed_handler(url)
-                return None
+            return response
+        else:
+            await self.url_failed_handler(url)
+            return None
 
     async def _parse_response(self, response):
         # parse response using _parse_content.
@@ -158,7 +160,7 @@ class Spider(MutableMapping):
             self._add_url_to_workqueue(new_urls)
             logger.info('URL {} checked over.'.format(response.url))
             return True
-        
+
         return False
 
     async def work(self):
@@ -172,7 +174,7 @@ class Spider(MutableMapping):
             while True:
                 url = await self.work_queue.get()
                 logger.info('Getting URL: {}'.format(url))
-                
+
                 # Check whether the URL is corresponded.
                 if not self._check_url(url):
                     self.work_queue.task_done()
@@ -186,7 +188,7 @@ class Spider(MutableMapping):
                     continue
 
                 # all done.
-                self.seen_url.add(url)                
+                self.seen_url.add(url)
                 self.work_queue.task_done()
                 await asyncio.sleep(self.interval)
 
@@ -199,7 +201,8 @@ class Spider(MutableMapping):
         try:
             await self.init_spider()
         except TypeError:
-            logger.error("Got some error information it seems because 'init_spider' is not an async function.", exc_info=True)
+            logger.error(
+                "Got some error information it seems because 'init_spider' is not an async function.", exc_info=True)
 
         logger.info('Initialization finished.')
 
@@ -211,7 +214,7 @@ class Spider(MutableMapping):
 
         for i in workers:
             i.cancel()
-        
+
         logger.info("Gathering information...")
         logger.info("Error urls: {}".format(len(self.error_urls)))
         logger.info("Spider finished.")
