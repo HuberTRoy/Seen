@@ -1,4 +1,10 @@
-## Seen
+<h1 align="center">Seen</h1>
+<div align="center">
+    <img src="https://travis-ci.org/HuberTRoy/Seen.svg?branch=master">
+    <img src="https://img.shields.io/badge/Python-3.5%203.6-green.svg">
+</div>
+
+##
 
 Seen is a lightweight web crawling framework for everyone.
 Written with `asyncio`，`aiohttp/requests`.
