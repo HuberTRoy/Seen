@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="seen",
-    version="0.1.1",
+    version="0.1.3",
     description="Lightweight Web crawling framework for everyone.",
     author="cyrbuzz",
     author_email="cyrbuzz@foxmail.com",
@@ -16,7 +16,8 @@ setup(
     ],
     install_requires=[
         'aiohttp',
-        'pyquery'
+        'pyquery',
+        'requests'
     ],
     license='GNU GPL 3',
     keywords=["crawling", "spider", "Lightweight"],
