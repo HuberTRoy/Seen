@@ -9,7 +9,8 @@ from .logger import logger
 from .fetch import fetch_content
 
 try:
-    from .fetch_by_browser import Browser
+    from .fetch_by_browser import get_browser, fetch_content_by_browser
+    Browser = True
 except ImportError:
     Browser = False
 
@@ -131,11 +132,12 @@ class Spider(MutableMapping):
             logger.error("please install pyppeteer correctly and try again.")
             exit("No pyppeteer.")
 
-        browser = Browser(totalPageNum=self.concurrency)
+        # browser = Browser(totalPageNum=self.concurrency)
 
         logger.info("launch browser, please wait..")
         try:
-            await browser.launch()
+            browser = await get_browser()
+            # await browser.launch()
         except:
             # accurate error will be set later.
             logger.error("failed to launch browser, please try again", exc_info=True)
@@ -188,10 +190,11 @@ class Spider(MutableMapping):
         # url text(HTML) cookies.
         browser = self.state.get('browser')
         kwargs['max_tries'] = self.max_tries
-        kwargs['timeout'] = self.timeout
+        # ms
+        # kwargs['timeout'] = self.timeout * 1000
         kwargs['cookies'] = self.cookies
 
-        response = await browser.fetch(url, **kwargs)
+        response = await fetch_content_by_browser(browser, url, **kwargs)
         if response.text == '<html><head></head><body></body></html>':
             await self.url_failed_handler(url)
             return None
@@ -231,7 +234,7 @@ class Spider(MutableMapping):
                 else:
                     _fetch = self._fetch_url
 
-                parse_result = await self._parse_response(await self._fetch(url))
+                parse_result = await self._parse_response(await _fetch(url))
 
                 if not parse_result:
                     # this url cannot be open.
@@ -268,7 +271,7 @@ class Spider(MutableMapping):
             i.cancel()
 
         if self.use_browser:
-            self.state.get('browser').close()
+            await self.state.get('browser').close()
 
         logger.info("Gathering information...")
         logger.info("Error urls: {}".format(len(self.error_urls)))
@@ -279,6 +282,8 @@ class Spider(MutableMapping):
             event_loop = asyncio.get_event_loop()
             event_loop.run_until_complete(self.crawl())
         except KeyboardInterrupt:
+            event_loop.run_until_complete(self.state.get('browser').close())
+
             for task in asyncio.Task.all_tasks():
                 task.cancel()
                 event_loop.run_forever()
