@@ -8,6 +8,10 @@ from .asrequests import asrequests
 from .logger import logger
 from .fetch import fetch_content
 
+try:
+    from .fetch_by_browser import Browser
+except ImportError:
+    Browser = False
 
 Queue = asyncio.Queue
 # requests = AsRequests()
@@ -42,6 +46,11 @@ class Spider(MutableMapping):
     seen_url = set()
     # save
     state = {}
+
+    # load JavaScript.
+    # True to startup.
+    # False by default.
+    use_browser = False
 
     def __init__(self):
         self.session = asrequests
@@ -117,6 +126,23 @@ class Spider(MutableMapping):
 
         return True
 
+    async def init_browser(self):
+        if Browser is False:
+            logger.error("please install pyppeteer correctly and try again.")
+            exit("No pyppeteer.")
+
+        browser = Browser(totalPageNum=self.concurrency)
+
+        logger.info("launch browser, please wait..")
+        try:
+            await browser.launch()
+        except:
+            # accurate error will be set later.
+            logger.error("failed to launch browser, please try again", exc_info=True)
+            exit("browser launch failure")
+
+        self.state['browser'] = browser
+
     async def url_failed_handler(self, url):
         """
             Do something with the URL that connected failure.
@@ -127,7 +153,10 @@ class Spider(MutableMapping):
     async def init_spider(self):
         """
             Should be override.
+            if browser is True then startup browser.
         """
+        if self.use_browser:
+            await self.init_browser()
         await asyncio.sleep(0)
 
     async def _parse_content(self, response):
@@ -139,9 +168,10 @@ class Spider(MutableMapping):
 
         return new_urls
 
-    async def _fetch_url(self, url, **kwargs):
+    async def _fetch_url(self, url):
         for i in range(self.max_tries):
-            response = await fetch_content(url, self.session, headers=self.headers, timeout=self.timeout, cookies=self.cookies)
+            response = await fetch_content(url, 
+                self.session, headers=self.headers, timeout=self.timeout, cookies=self.cookies)
             # return None if failed.
             if response is None:
                 logger.info(
@@ -152,6 +182,21 @@ class Spider(MutableMapping):
         else:
             await self.url_failed_handler(url)
             return None
+
+    async def _fetch_url_by_browser(self, url, **kwargs):
+        # return BrowserResponse
+        # url text(HTML) cookies.
+        browser = self.state.get('browser')
+        kwargs['max_tries'] = self.max_tries
+        kwargs['timeout'] = self.timeout
+        kwargs['cookies'] = self.cookies
+
+        response = await browser.fetch(url, **kwargs)
+        if response.text == '<html><head></head><body></body></html>':
+            await self.url_failed_handler(url)
+            return None
+
+        return response
 
     async def _parse_response(self, response):
         # parse response using _parse_content.
@@ -180,7 +225,14 @@ class Spider(MutableMapping):
                     self.work_queue.task_done()
                     continue
 
-                parse_result = await self._parse_response(await self._fetch_url(url))
+                # use browser or not.
+                if self.use_browser:
+                    _fetch = self._fetch_url_by_browser
+                else:
+                    _fetch = self._fetch_url
+
+                parse_result = await self._parse_response(await self._fetch(url))
+
                 if not parse_result:
                     # this url cannot be open.
                     self.error_urls.add(url)
@@ -214,6 +266,9 @@ class Spider(MutableMapping):
 
         for i in workers:
             i.cancel()
+
+        if self.use_browser:
+            self.state.get('browser').close()
 
         logger.info("Gathering information...")
         logger.info("Error urls: {}".format(len(self.error_urls)))
