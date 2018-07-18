@@ -25,6 +25,11 @@ It is useful for writting a web crawling quickly.
 pip install seen
 ```
 
+Get JavaScript support!
+```
+pip install pyppeteer
+```
+
 ## Usage:
 
 1. Write spider.py
