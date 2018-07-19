@@ -156,6 +156,13 @@ if not noAiohttp:
             return self.request('POST', url, **kwargs)
 
 
+        def close(self):
+            """
+                Explicit close.
+            """
+            self.__del__()
+
+
     BaseHttp = AioRequestsBase
 
 
