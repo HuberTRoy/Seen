@@ -11,7 +11,8 @@ class BrowserResponse:
 
     def __repr__(self):
 
-        return f'Response [{self.url}]'
+        return 'Response [{}]'.format(self.url)
+
 
 def emptyBrowserResponse(url):
 
