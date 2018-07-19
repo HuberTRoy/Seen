@@ -31,7 +31,7 @@ class Browser(object):
         # Create a new page to load url.
         page = await self.browser.newPage()
         try:
-            logger.info(f"try to get {url} by browser.")
+            logger.info("try to get {url} by browser.".format(url=url))
             await page.goto(url, **kwargs)
             # break
         except TimeoutError:
