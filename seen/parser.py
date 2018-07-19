@@ -121,6 +121,13 @@ class Parser(BaseParser):
             isJson)
 
 
+class ChromeParser(BaseParser):
+    """
+        Chrome parser use headless chrome/chromium browser to run JavaScript code.
+        It depends on pyppeteer and request
+    """
+
+
 class ReParser(BaseParser):
     """
         re parser.

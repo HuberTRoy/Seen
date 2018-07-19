@@ -80,22 +80,23 @@ class AioResult(object):
         return json.loads(self.text)
 
 
-class RequestsBase(object):
-    session = requests.session()
+if not noRequests:
+    class RequestsBase(object):
+        session = requests.session()
 
-    def __del__(self):
-        self.session.close()
+        def __del__(self):
+            self.session.close()
 
-    def get(self, url, **kwargs):
+        def get(self, url, **kwargs):
 
-        return self.session.get(url, **kwargs)
+            return self.session.get(url, **kwargs)
 
-    def post(self, url, **kwargs):
+        def post(self, url, **kwargs):
 
-        return self.session.post(url, **kwargs)
+            return self.session.post(url, **kwargs)
 
 
-BaseHttp = RequestsBase
+    BaseHttp = RequestsBase
 
 
 if not noAiohttp:
@@ -153,6 +154,13 @@ if not noAiohttp:
 
         def post(self, url, **kwargs):
             return self.request('POST', url, **kwargs)
+
+
+        def close(self):
+            """
+                Explicit close.
+            """
+            self.__del__()
 
 
     BaseHttp = AioRequestsBase

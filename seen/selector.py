@@ -4,6 +4,9 @@ from pyquery import PyQuery as pq
 
 
 class Selector(object):
+    """
+
+    """
 
     def __init__(self, rule, attr=None):
         self.rule = rule
