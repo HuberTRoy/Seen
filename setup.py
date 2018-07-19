@@ -2,8 +2,8 @@ from setuptools import find_packages, setup
 
 setup(
     name="seen",
-    version="0.1.3",
-    description="Lightweight Web crawling framework for everyone.",
+    version="0.1.5",
+    description="Supported JavaScript Web crawling framework for everyone.",
     author="cyrbuzz",
     author_email="cyrbuzz@foxmail.com",
     url='https://github.com/HuberTRoy/seen',
@@ -20,7 +20,7 @@ setup(
         'requests'
     ],
     license='GNU GPL 3',
-    keywords=["crawling", "spider", "Lightweight"],
+    keywords=["crawling", "spider", "Lightweight", "supported_javaScript", "JavaScript", "crawler"],
     packages=find_packages(),
     py_modules=['seen'],
     include_package_data=True
