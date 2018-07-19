@@ -2,6 +2,7 @@
 <div align="center">
     <img src="https://travis-ci.org/HuberTRoy/Seen.svg?branch=master">
     <img src="https://img.shields.io/badge/Python-3.5%203.6-green.svg">
+    <img src="https://img.shields.io/badge/javascript-yes-brightgreen.svg">
 </div>
 
 ##
