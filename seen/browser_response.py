@@ -13,3 +13,6 @@ class BrowserResponse:
 
         return f'Response [{self.url}]'
 
+def emptyBrowserResponse(url):
+
+    return BrowserResponse(url, text='<html><head></head><body></body></html>', cookies=[])
