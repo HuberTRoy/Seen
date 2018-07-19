@@ -9,7 +9,7 @@
 Seen is a lightweight web crawling framework for everyone.
 Written with `asyncio`，`aiohttp/requests`.
 
-It is useful for writting a web crawling quickly.
+It is useful for writing a web crawling quickly and get **FULL JavaScript Support**.
 
 **Working Process:**
 ![workingProcess](https://github.com/HuberTRoy/seen/blob/master/img/process.png)
@@ -52,6 +52,10 @@ class MySpider(Spider):
     roots = 'https://www.v2ex.com'
     url_limit = ('www.v2ex.com')
     concurrency = 1
+    # if you want to load JavaScript, set use_browser = True
+    # by default is False.
+    use_browser = False
+
     parsers = [Parser(Post)]
 
 
